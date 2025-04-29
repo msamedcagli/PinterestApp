@@ -19,7 +19,7 @@ import java.util.UUID
 // Unsplash API istemcisi için singleton obje
 object UnsplashApiClient {
     private const val BASE_URL = "https://api.unsplash.com/" // API'nın temel URL'si
-    private const val UNSPLASH_ACCESS_KEY = "66RNYT3-IhrQUFbQ-PPKIx3Bs34uue1bLdTrVAJryJk" // Unsplash API erişim anahtarı
+    private const val UNSPLASH_ACCESS_KEY = "BU KISMA API KEY GELECEK" // Unsplash API erişim anahtarı
 
     // HTTP isteklerini loglamak için interceptor
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
