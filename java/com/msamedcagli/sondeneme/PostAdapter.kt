@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,64 +20,122 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
-// PostAdapter, RecyclerView için bir adapter sınıfıdır ve Post verilerini listeler
+// RecyclerView için adapter: Post listesini gösterir
 class PostAdapter(private val postList: ArrayList<Post>) : RecyclerView.Adapter<PostAdapter.PostHolder>() {
 
-    private val auth = Firebase.auth // Firebase authentication örneği
-    private val db = Firebase.firestore // Firestore veritabanı referansı
+    private val auth = Firebase.auth
+    private val db = Firebase.firestore
+    private val TAG = "PostAdapter"
 
-    // ViewHolder sınıfı: RecyclerView satırının bileşenlerini tutar
+    // RecyclerView satırının bileşenlerini tutar
     class PostHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val imageView: ImageView = itemView.findViewById(R.id.recyclerviewImageview) // Görsel
-        val downloadButton: ImageView = itemView.findViewById(R.id.downloadButton) // İndirme butonu
+        val imageView: ImageView = itemView.findViewById(R.id.recyclerviewImageview)
+        val downloadButton: ImageView = itemView.findViewById(R.id.downloadButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostHolder {
-        // Yeni bir RecyclerView satırı oluşturulduğunda bu metot çağrılır
         val view = LayoutInflater.from(parent.context).inflate(R.layout.recycler_row, parent, false)
         return PostHolder(view)
     }
 
     override fun onBindViewHolder(holder: PostHolder, position: Int) {
         val post = postList[position]
-        // Glide ile görsel URL’den yüklenir ve ImageView'a aktarılır
+        Log.d(TAG, "onBindViewHolder: Post URL: ${post.downloadUrl}")
+
+        // Görseli Glide ile yükle
         Glide.with(holder.itemView.context).load(post.downloadUrl).into(holder.imageView)
 
-        // İndirme butonuna tıklandığında görsel indirme işlemi başlatılır
+        // İndirme butonuna tıklanınca görseli indir
         holder.downloadButton.setOnClickListener {
+            Log.d(TAG, "Download button clicked for URL: ${post.downloadUrl}")
             downloadImage(holder.itemView.context, post)
         }
     }
 
-    override fun getItemCount(): Int = postList.size // Liste eleman sayısını döndürür
+    override fun getItemCount(): Int = postList.size
 
-    // Yeni veriler geldiğinde RecyclerView’ı güncellemek için kullanılan metot
+    // Liste güncellendiğinde RecyclerView'ı yeniler
     fun updatePosts(newPosts: List<Post>) {
         postList.clear()
         postList.addAll(newPosts)
         notifyDataSetChanged()
     }
 
-    // Glide ile görsel indirildikten sonra bitmap formatında kaydedilir
+    // Glide ile görsel indirildikten sonra Firestore ve galeriye kaydedilir
     private fun downloadImage(context: Context, post: Post) {
-        Glide.with(context).asBitmap().load(post.downloadUrl).into(object : CustomTarget<Bitmap>() {
+        try {
+            val currentUser = auth.currentUser
+            if (currentUser == null) {
+                Toast.makeText(context, "Lütfen giriş yapın", Toast.LENGTH_SHORT).show()
+                return
+            }
+            Glide.with(context).asBitmap().load(post.downloadUrl).into(object : CustomTarget<Bitmap>() {
                 override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                    saveImageToGallery(context, resource) // İndirilmiş bitmap’i kaydet
-                }
+                    try {
+                        // Galeriye kaydet
+                        saveImageToGallery(context, resource)
 
+                        // Firestore'a kaydet veya güncelle
+                        db.collection("Posts")
+                            .whereEqualTo("downloadUrl", post.downloadUrl)
+                            .whereEqualTo("userEmail", currentUser.email)
+                            .get()
+                            .addOnSuccessListener { documents ->
+                                if (documents.isEmpty) {
+                                    // Yeni kayıt oluştur
+                                    val newPost = hashMapOf(
+                                        "downloadUrl" to post.downloadUrl,
+                                        "userEmail" to currentUser.email,
+                                        "comment" to "",
+                                        "isDownloaded" to true,
+                                        "date" to com.google.firebase.Timestamp.now()
+                                    )
+                                    db.collection("Posts")
+                                        .add(newPost)
+                                        .addOnSuccessListener {
+                                            Toast.makeText(context, "Görsel indirildi ve kaydedildi", Toast.LENGTH_SHORT).show()
+                                        }
+                                        .addOnFailureListener {
+                                            Toast.makeText(context, "Görsel kaydedilirken hata oluştu", Toast.LENGTH_SHORT).show()
+                                        }
+                                } else {
+                                    // Var olan kaydı güncelle
+                                    for (document in documents) {
+                                        db.collection("Posts").document(document.id)
+                                            .update("isDownloaded", true)
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "Görsel indirildi ve kaydedildi", Toast.LENGTH_SHORT).show()
+                                            }
+                                            .addOnFailureListener {
+                                                Toast.makeText(context, "Görsel kaydedilirken hata oluştu", Toast.LENGTH_SHORT).show()
+                                            }
+                                    }
+                                }
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(context, "Veritabanı bağlantısında hata oluştu", Toast.LENGTH_SHORT).show()
+                            }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Görsel işlenirken hata oluştu", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 override fun onLoadCleared(placeholder: Drawable?) {
-                    // Glide için gerekli, ama burada kullanılmıyor
+                    // Gerekiyorsa temizlik işlemleri burada yapılabilir
                 }
             })
+        } catch (e: Exception) {
+            Toast.makeText(context, "İndirme işlemi sırasında hata oluştu", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    // Bitmap’i cihazın galerisinde belirli bir klasöre kaydeder
+    // Bitmap görseli galeriye kaydeder
     private fun saveImageToGallery(context: Context, bitmap: Bitmap) {
-        val filename = "image_${System.currentTimeMillis()}.jpg" // Dosya adı oluştur
+        Log.d(TAG, "Saving image to gallery")
+        val filename = "image_${System.currentTimeMillis()}.jpg"
         val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, filename)
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MyApp") // "MyApp" klasörü
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/MyApp")
         }
 
         val resolver = context.contentResolver
@@ -85,9 +144,11 @@ class PostAdapter(private val postList: ArrayList<Post>) : RecyclerView.Adapter<
         imageUri?.let { uri ->
             resolver.openOutputStream(uri)?.use { outputStream ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                Log.d(TAG, "Image saved to gallery successfully")
             }
             Toast.makeText(context, "Görsel galeriye kaydedildi", Toast.LENGTH_SHORT).show()
         } ?: run {
+            Log.e(TAG, "Failed to save image to gallery")
             Toast.makeText(context, "Görsel kaydedilemedi", Toast.LENGTH_SHORT).show()
         }
     }
