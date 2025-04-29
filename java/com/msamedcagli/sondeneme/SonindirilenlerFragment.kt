@@ -15,76 +15,75 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.firestore.ListenerRegistration
 import com.msamedcagli.sondeneme.databinding.FragmentSonindirilenlerBinding
 
 class SonindirilenlerFragment : Fragment(), PopupMenu.OnMenuItemClickListener {
 
+    private var listenerRegistration: ListenerRegistration? = null
     private var _binding: FragmentSonindirilenlerBinding? = null
     private val binding get() = _binding!!
     private var adapter: PostAdapter? = null
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
 
-    // Firebase Authentication ve Firestore nesnelerini başlatıyoruz
+    // Firebase Authentication ve Firestore başlatılır
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = Firebase.auth
         db = Firebase.firestore
     }
 
-    // Fragment için view (görünüm) oluşturuluyor, ViewBinding ile layout bağlanıyor
+    // ViewBinding ile layout bağlanır
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentSonindirilenlerBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    // View hazır olduğunda yapılacak işlemler
+    // Arayüz hazır olduğunda işlemler başlatılır
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupRecyclerView()      // RecyclerView kurulumu
-        setupClickListeners()    // Buton tıklamaları ayarlanıyor
-        getDownloadedImages()    // Firestore'dan indirilen görseller çekiliyor
+        setupRecyclerView()
+        setupClickListeners()
+        getDownloadedImages()
     }
 
-    // RecyclerView kurulumu: Grid düzeni, adapter bağlama
+    // RecyclerView kurulumu: Grid düzeni ve adapter bağlama
     private fun setupRecyclerView() {
-        adapter = PostAdapter(arrayListOf()) // Boş liste ile adapter başlatılıyor
+        adapter = PostAdapter(arrayListOf())
         binding.inRecyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
         binding.inRecyclerView.adapter = adapter
     }
 
-    // Firestore'dan giriş yapan kullanıcının isDownloaded = true olan verileri çekiliyor
+    // Firestore'dan isDownloaded = true olan veriler çekilir
     private fun getDownloadedImages() {
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            db.collection("Posts")
-                .whereEqualTo("userEmail", currentUser.email)          // Sadece bu kullanıcıya ait
-                .whereEqualTo("isDownloaded", true)                   // İndirilen postlar
-                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            listenerRegistration = db.collection("Posts")
+                .whereEqualTo("userEmail", currentUser.email)
+                .whereEqualTo("isDownloaded", true)
                 .addSnapshotListener { value, error ->
+                    if (_binding == null) return@addSnapshotListener
 
-                    // Hata varsa göster
                     if (error != null) {
-                        Toast.makeText(requireContext(), "Veriler yüklenirken hata oluştu: ${error.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(),
+                            "Veriler yüklenirken hata oluştu: ${error.message}",
+                            Toast.LENGTH_LONG).show()
                         return@addSnapshotListener
                     }
 
-                    // Başarıyla gelen veriler işleniyor
                     val downloadedPosts = ArrayList<Post>()
                     value?.documents?.forEach { document ->
-                        val downloadUrl = document.getString("downloadUrl") ?: ""
-                        val comment = document.getString("comment") ?: ""
-                        val userEmail = document.getString("userEmail") ?: ""
                         val post = Post(
-                            userEmail = userEmail,
-                            comment = comment,
-                            downloadUrl = downloadUrl,
+                            userEmail = document.getString("userEmail") ?: "",
+                            comment = document.getString("comment") ?: "",
+                            downloadUrl = document.getString("downloadUrl") ?: "",
                             isDownloaded = true
                         )
                         downloadedPosts.add(post)
                     }
 
-                    // Liste boşsa "Boş içerik" mesajı göster, değilse listeyi göster
+                    // Liste boşsa bilgilendirme göster
                     if (downloadedPosts.isEmpty()) {
                         binding.emptyStateText.visibility = View.VISIBLE
                         binding.inRecyclerView.visibility = View.GONE
@@ -93,7 +92,6 @@ class SonindirilenlerFragment : Fragment(), PopupMenu.OnMenuItemClickListener {
                         binding.inRecyclerView.visibility = View.VISIBLE
                     }
 
-                    // Adapter’a yeni veri seti veriliyor
                     adapter?.updatePosts(downloadedPosts)
                 }
         } else {
@@ -101,30 +99,29 @@ class SonindirilenlerFragment : Fragment(), PopupMenu.OnMenuItemClickListener {
         }
     }
 
-    // Sayfadaki butonlara tıklanma olayları burada tanımlanır
+    // Tıklama olayları tanımlanır
     private fun setupClickListeners() {
-        // Menü (popup) gösteren buton
+        // Menü açılır
         binding.floatingActionButton.setOnClickListener { showPopupMenu(it) }
 
-        // Ana sayfaya dön
+        // Ana sayfaya geçiş
         binding.AnaSayfaButton.setOnClickListener {
             val action = SonindirilenlerFragmentDirections.actionSonindirilenlerFragmentToMainPageFragment()
             Navigation.findNavController(it).navigate(action)
         }
 
-        // Gönderi ekleme sayfasına git
+        // Gönderi ekleme sayfasına geçiş
         binding.GonderiEkleButton.setOnClickListener {
             val action = SonindirilenlerFragmentDirections.actionSonindirilenlerFragmentToUploadFragment()
             Navigation.findNavController(it).navigate(action)
         }
     }
 
-    // Sayfada üst menüyü (PopupMenu) gösterir
+    // Popup menü gösterilir
     private fun showPopupMenu(view: View) {
         try {
             val popup = PopupMenu(requireContext(), binding.floatingActionButton)
-            val inflater = popup.menuInflater
-            inflater.inflate(R.menu.pop_menu, popup.menu)
+            popup.menuInflater.inflate(R.menu.pop_menu, popup.menu)
             popup.setOnMenuItemClickListener(this)
             popup.show()
         } catch (e: Exception) {
@@ -132,11 +129,11 @@ class SonindirilenlerFragment : Fragment(), PopupMenu.OnMenuItemClickListener {
         }
     }
 
-    // Menüdeki "Çıkış Yap" seçeneğine tıklanırsa yapılacak işlemler
+    // Menüden "Çıkış Yap" seçeneği seçildiğinde oturum kapatılır
     override fun onMenuItemClick(item: MenuItem?): Boolean {
         try {
             if (item?.itemId == R.id.cikisYap) {
-                auth.signOut() // Firebase oturum kapatma
+                auth.signOut()
                 val action = SonindirilenlerFragmentDirections.actionSonindirilenlerFragmentToKullaniciFragment()
                 Navigation.findNavController(requireView()).navigate(action)
             }
@@ -146,9 +143,10 @@ class SonindirilenlerFragment : Fragment(), PopupMenu.OnMenuItemClickListener {
         return true
     }
 
-    // Bellek sızıntısını önlemek için ViewBinding null’a çekiliyor
+    // ViewBinding temizlenir, listener iptal edilir
     override fun onDestroyView() {
         super.onDestroyView()
+        listenerRegistration?.remove()
         _binding = null
     }
 }
