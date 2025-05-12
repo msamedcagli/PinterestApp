@@ -3,7 +3,7 @@ Firebase ile hem kullanıcı oluşturma ve girişi yapıldı. Unsplash Api kulla
 <br><br>
 
 <h1>28.04.2025</h1>
-Yeni Değişiklikler: Uygulamaya Arama butonu getirildi. Bu buton Sayesinde hem api hem de Firebaase'e eklenen resimleri arayıp bulabiliyoruz.<br>
+Yeni Değişiklikler: Uygulamaya Arama butonu getirildi. Bu buton Sayesinde hem api hem de Firebase'e eklenen resimleri arayıp bulabiliyoruz.<br>
 Arayüz İyileştirmesi Yapıldı.
 <br><br>
 
