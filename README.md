@@ -1,3 +1,14 @@
+<h1>Pinterest App Klonu</h1>
+
+
+## Uygulama Görselleri
+|             Giriş Ekranı             |                   Ana Sayfa               |                    Filtre                |
+| :----------------------------------: | :---------------------------------------: |:---------------------------------------: |
+|    ![](image/giriskayitekrani.png)   |         ![](image/anasayfa.png)           |            ![](image/filtre.png)         |
+|             Resim Yükleme            |           Geçmiş İndirmeler               |                  Çıkış Yap               |
+|    ![](image/yuklemeekrani.png)      |         ![](image/indirilenler.png)       |          ![](image/cikisyap.png)         |
+
+
 <h1>20.04.2025</h1>
 Firebase ile hem kullanıcı oluşturma ve girişi yapıldı. Unsplash Api kullanılarak yeni görseller ekrana çekildi.
 <br><br>
