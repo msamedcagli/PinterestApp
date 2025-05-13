@@ -19,7 +19,11 @@ Arayüz İyileştirmesi Yapıldı.
 <br><br>
 
 <h1>Güncelleme (29.04.2025)</h1>
-<p>Proje Bitirildi.</p> 
+<p>Proje bitirildi.</p> 
+
+<br>
+<h1>Güncelleme (13.05.2025)</h1>
+<p>Uygulama görselleri eklendi.</p>
 
 <br>
 <h2>Projenin özellikleri;</h2>
