@@ -9,17 +9,19 @@
 |    ![](image/yuklemeekrani.png)      |         ![](image/indirilenler.png)       |          ![](image/cikisyap.png)         |
 
 
-<h1>20.04.2025</h1>
+<h1>Güncelleme (20.04.2025)</h1>
 Firebase ile hem kullanıcı oluşturma ve girişi yapıldı. Unsplash Api kullanılarak yeni görseller ekrana çekildi.
 <br><br>
 
-<h1>28.04.2025</h1>
+<h1>Güncelleme (28.04.2025)</h1>
 Yeni Değişiklikler: Uygulamaya Arama butonu getirildi. Bu buton Sayesinde hem api hem de Firebase'e eklenen resimleri arayıp bulabiliyoruz.<br>
 Arayüz İyileştirmesi Yapıldı.
 <br><br>
 
-<h1>29.04.2025</h1>
-Proje Bitirildi.<br>
+<h1>Güncelleme (29.04.2025)</h1>
+<p>Proje Bitirildi.</p> 
+
+<br>
 <h2>Projenin özellikleri;</h2>
 <ul>
   <li>Kullanıcı Giriş/Kayıt Ol</li>
